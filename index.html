@@ -236,6 +236,16 @@
         <label class="modal-section-title">Cambiar fondo</label>
         <div class="color-picker" id="colorPickerEdit"></div>
       </div>
+
+      <div class="modal-section">
+        <label class="modal-section-title">Miembros del tablero</label>
+        <div id="miembrosList" style="margin-bottom: 12px; max-height: 200px; overflow-y: auto;"></div>
+        <div style="display: flex; gap: 6px;">
+          <input type="email" id="newMiembroEmail" class="input-text" placeholder="Email del miembro" style="flex: 1; margin: 0;">
+          <button class="btn btn-secondary btn-sm" onclick="addMiembroTablero()">Agregar</button>
+        </div>
+      </div>
+
       <div style="display: flex; gap: 8px;">
         <button class="btn btn-primary" style="flex: 1;" onclick="updateTableroColor()">Guardar cambios</button>
         <button class="btn btn-danger" style="flex: 1;" onclick="deleteTablero()">🗑️ Eliminar</button>
@@ -384,6 +394,7 @@
   let user = null;
   let currentTableroId = null;
   let currentTarjetaId = null;
+  let currentListaId = null;
   let currentListaIdForNewTarjeta = null;
   let tableros = [];
   let listas = [];
@@ -493,8 +504,76 @@
   };
 
   window.editTableroModal = function() {
+    const tablero = tableros.find(t => t.id === currentTableroId);
     renderColorPicker('colorPickerEdit');
+    document.getElementById('editTableroNombre').value = tablero.nombre || '';
+    renderMiembros();
+    document.getElementById('newMiembroEmail').value = '';
     document.getElementById('editTableroModal').classList.add('active');
+  };
+
+  function renderMiembros() {
+    const list = document.getElementById('miembrosList');
+    const tablero = tableros.find(t => t.id === currentTableroId);
+    const miembros = tablero?.miembros || [];
+
+    if (miembros.length === 0) {
+      list.innerHTML = '<p style="font-size: 13px; color: #64748b;">Sin miembros</p>';
+      return;
+    }
+
+    list.innerHTML = miembros.map(email => `
+      <div style="display: flex; gap: 8px; align-items: center; padding: 8px; background: #f8fafc; border-radius: 6px; margin-bottom: 6px; font-size: 13px;">
+        <div class="avatar-mini" style="width: 24px; height: 24px; flex-shrink: 0;">${email[0].toUpperCase()}</div>
+        <span style="flex: 1;">${email}</span>
+        ${email === user.email ? '<span style="color: #64748b; font-size: 11px;">(Tú)</span>' : `<button class="btn btn-danger btn-sm" onclick="removeMiembroTablero('${email}')" style="padding: 2px 6px; font-size: 11px;">Remover</button>`}
+      </div>
+    `).join('');
+  }
+
+  window.addMiembroTablero = async function() {
+    const email = document.getElementById('newMiembroEmail').value.trim().toLowerCase();
+    if (!email) {
+      showToast('Ingresa un email', true);
+      return;
+    }
+
+    const tablero = tableros.find(t => t.id === currentTableroId);
+    const miembros = tablero?.miembros || [];
+
+    if (miembros.includes(email)) {
+      showToast('Este usuario ya es miembro', true);
+      return;
+    }
+
+    try {
+      miembros.push(email);
+      await updateDoc(doc(db, 'tableros', currentTableroId), {miembros});
+      await loadData();
+      renderMiembros();
+      document.getElementById('newMiembroEmail').value = '';
+      showToast('Miembro agregado ✓');
+    } catch (err) {
+      showToast('Error: ' + err.message, true);
+    }
+  };
+
+  window.removeMiembroTablero = async function(email) {
+    if (!confirm(`¿Remover a ${email} del tablero?`)) return;
+
+    const tablero = tableros.find(t => t.id === currentTableroId);
+    let miembros = tablero?.miembros || [];
+    miembros = miembros.filter(m => m !== email);
+
+    try {
+      await updateDoc(doc(db, 'tableros', currentTableroId), {miembros});
+      await loadData();
+      renderMiembros();
+      renderAsignados([]);
+      showToast('Miembro removido ✓');
+    } catch (err) {
+      showToast('Error: ' + err.message, true);
+    }
   };
 
   window.closeModal = function(id) {
@@ -527,14 +606,80 @@
   };
 
   window.updateTableroColor = async function() {
+    const nombre = document.getElementById('editTableroNombre').value.trim();
+    if (!nombre) {
+      showToast('El nombre no puede estar vacío', true);
+      return;
+    }
     const color = document.getElementById('colorPickerEdit').dataset.color || fondos[0];
     try {
-      await updateDoc(doc(db, 'tableros', currentTableroId), {color});
+      await updateDoc(doc(db, 'tableros', currentTableroId), {nombre, color});
       await loadData();
       renderTableros();
       openTablero(currentTableroId);
       closeModal('editTableroModal');
       showToast('Tablero actualizado ✓');
+    } catch (err) {
+      showToast('Error: ' + err.message, true);
+    }
+  };
+
+  window.deleteTablero = async function() {
+    if (!confirm('¿Eliminar este tablero? Se eliminarán todas sus listas y tarjetas.')) return;
+    try {
+      await deleteDoc(doc(db, 'tableros', currentTableroId));
+      const tableroTarjetas = tarjetas.filter(t => t.tableroId === currentTableroId);
+      for (const t of tableroTarjetas) {
+        await deleteDoc(doc(db, 'tarjetas', t.id));
+      }
+      const tableroListas = listas.filter(l => l.tableroId === currentTableroId);
+      for (const l of tableroListas) {
+        await deleteDoc(doc(db, 'listas', l.id));
+      }
+      await loadData();
+      backToTableros();
+      showToast('Tablero eliminado ✓');
+    } catch (err) {
+      showToast('Error: ' + err.message, true);
+    }
+  };
+
+  window.editListaModal = function(listaId) {
+    const lista = listas.find(l => l.id === listaId);
+    currentListaId = listaId;
+    document.getElementById('editListaNombre').value = lista.nombre || '';
+    document.getElementById('editListaModal').classList.add('active');
+  };
+
+  window.updateListaNombre = async function() {
+    const nombre = document.getElementById('editListaNombre').value.trim();
+    if (!nombre) {
+      showToast('El nombre no puede estar vacío', true);
+      return;
+    }
+    try {
+      await updateDoc(doc(db, 'listas', currentListaId), {nombre});
+      await loadData();
+      renderKanban();
+      closeModal('editListaModal');
+      showToast('Lista actualizada ✓');
+    } catch (err) {
+      showToast('Error: ' + err.message, true);
+    }
+  };
+
+  window.deleteLista = async function() {
+    if (!confirm('¿Eliminar esta lista? Se eliminarán todas sus tarjetas.')) return;
+    try {
+      const listasTarjetas = tarjetas.filter(t => t.listaId === currentListaId);
+      for (const t of listasTarjetas) {
+        await deleteDoc(doc(db, 'tarjetas', t.id));
+      }
+      await deleteDoc(doc(db, 'listas', currentListaId));
+      await loadData();
+      renderKanban();
+      closeModal('editListaModal');
+      showToast('Lista eliminada ✓');
     } catch (err) {
       showToast('Error: ' + err.message, true);
     }
@@ -951,7 +1096,12 @@
       `;
       }).join('');
 
-      html += usuarios.map(u => {
+      // Filtrar solo miembros del tablero actual
+      const tablero = tableros.find(t => t.id === currentTableroId);
+      const miembros = tablero?.miembros || [];
+      const miembrosList = usuarios.filter(u => miembros.includes(u.email));
+
+      html += miembrosList.map(u => {
         const key = 'asignado_' + u.email;
         const isActive = filtros[key] ? ' style="border: 2px solid #0f172a; background: white;"' : '';
         return `
