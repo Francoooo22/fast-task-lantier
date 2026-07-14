@@ -323,6 +323,26 @@
   </div>
 </div>
 
+<div id="editListaModal" class="modal-overlay">
+  <div class="modal" style="max-width: 400px;">
+    <div class="modal-header">
+      <div class="modal-title">Editar lista</div>
+      <button class="modal-close" onclick="closeModal('editListaModal')">×</button>
+    </div>
+    <div class="modal-body" style="grid-template-columns: 1fr;">
+      <div class="modal-section">
+        <label class="modal-section-title">Nombre de la lista</label>
+        <input type="text" id="editListaNombre" class="input-text" placeholder="Nombre">
+      </div>
+      <div style="display: flex; gap: 8px; justify-content: flex-end;">
+        <button class="btn btn-secondary" onclick="closeModal('editListaModal')">Cancelar</button>
+        <button class="btn btn-primary" onclick="updateListaNombre()">Guardar</button>
+        <button class="btn btn-danger" onclick="deleteLista()">🗑️ Eliminar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <div id="nuevaTarjetaModal" class="modal-overlay">
   <div class="modal" style="max-width: 400px;">
     <div class="modal-header">
@@ -562,7 +582,10 @@
         <div class="lista" draggable="true" ondragstart="dragLista(event, '${lista.id}')" ondragover="allowDropLista(event)" ondrop="dropLista(event)" data-lista-id="${lista.id}">
           <div class="lista-header" draggable="true">
             <div>${lista.nombre}</div>
-            <div class="lista-count">${count}</div>
+            <div style="display: flex; gap: 6px; align-items: center;">
+              <div class="lista-count">${count}</div>
+              <button class="btn-icon" onclick="editListaModal('${lista.id}')" style="padding: 4px; border: none; background: none; cursor: pointer; font-size: 16px;">⋮</button>
+            </div>
           </div>
           <div class="lista-cards" data-lista-id="${lista.id}" ondragover="allowDrop(event)" ondrop="dropTarjeta(event, '${lista.id}')">
             ${tarjetasLista.map(t => renderTarjeta(t)).join('')}
@@ -914,23 +937,31 @@
     const filterBar = document.getElementById('filterBar');
     if (filterBar.style.display === 'none') {
       let html = '<strong style="padding-right: 16px;">Filtrar por:</strong>';
-      
+
       const todasLasEtiquetas = [...new Set(tarjetas.flatMap(t => (t.etiquetas || []).map(e => JSON.stringify(e))))].map(e => JSON.parse(e));
-      html += todasLasEtiquetas.map(e => `
-        <span class="filter-badge" onclick="applyFilter('etiqueta', '${e.color}', '${e.text}')">
+      html += todasLasEtiquetas.map(e => {
+        const key = 'etiqueta_' + e.color;
+        const isActive = filtros[key] ? ' style="border: 2px solid #0f172a; background: white;"' : '';
+        return `
+        <span class="filter-badge"${isActive} onclick="applyFilter('etiqueta', '${e.color}', '${e.text}')">
           <span style="width: 12px; height: 12px; border-radius: 2px; background: ${e.color};"></span>
           ${e.text}
           <span class="close">×</span>
         </span>
-      `).join('');
-      
-      html += usuarios.map(u => `
-        <span class="filter-badge" onclick="applyFilter('asignado', '${u.email}', '${u.email}')">
+      `;
+      }).join('');
+
+      html += usuarios.map(u => {
+        const key = 'asignado_' + u.email;
+        const isActive = filtros[key] ? ' style="border: 2px solid #0f172a; background: white;"' : '';
+        return `
+        <span class="filter-badge"${isActive} onclick="applyFilter('asignado', '${u.email}', '${u.email}')">
           👤 ${u.email}
           <span class="close">×</span>
         </span>
-      `).join('');
-      
+      `;
+      }).join('');
+
       filterBar.innerHTML = html;
       filterBar.style.display = 'flex';
     } else {
@@ -942,10 +973,13 @@
     const key = type + '_' + value;
     if (filtros[key]) {
       delete filtros[key];
+      showToast('Filtro ' + label + ' removido');
     } else {
       filtros[key] = {type, value, label};
+      showToast('Filtro ' + label + ' aplicado');
     }
     renderKanban();
+    showFiltros();
   };
 </script>
 
