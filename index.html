@@ -300,6 +300,38 @@
   </div>
 </div>
 
+<div id="listaModal" class="modal-overlay">
+  <div class="modal" style="max-width: 400px;">
+    <div class="modal-header">
+      <div class="modal-title">Nueva lista</div>
+      <button class="modal-close" onclick="closeModal('listaModal')">×</button>
+    </div>
+    <div class="modal-body" style="grid-template-columns: 1fr;">
+      <input type="text" id="newListaNombre" class="input-text" placeholder="Nombre de la lista" autofocus>
+      <div style="display: flex; gap: 8px; justify-content: flex-end;">
+        <button class="btn btn-secondary" onclick="closeModal('listaModal')">Cancelar</button>
+        <button class="btn btn-primary" onclick="confirmCreateLista()">Crear lista</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="nuevaTarjetaModal" class="modal-overlay">
+  <div class="modal" style="max-width: 400px;">
+    <div class="modal-header">
+      <div class="modal-title">Agregar tarjeta</div>
+      <button class="modal-close" onclick="closeModal('nuevaTarjetaModal')">×</button>
+    </div>
+    <div class="modal-body" style="grid-template-columns: 1fr;">
+      <input type="text" id="newTarjetaTitulo" class="input-text" placeholder="Título de la tarjeta" autofocus>
+      <div style="display: flex; gap: 8px; justify-content: flex-end;">
+        <button class="btn btn-secondary" onclick="closeModal('nuevaTarjetaModal')">Cancelar</button>
+        <button class="btn btn-primary" onclick="confirmCreateTarjeta()">Crear tarjeta</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <div id="toast" class="toast" style="display: none;"></div>
 
 <script type="module">
@@ -325,11 +357,14 @@
   let user = null;
   let currentTableroId = null;
   let currentTarjetaId = null;
+  let currentListaIdForNewTarjeta = null;
   let tableros = [];
   let listas = [];
   let tarjetas = [];
   let usuarios = [];
   let filtros = {};
+  let searchTerm = '';
+  let tarjetasFiltradas = null;
   
   const fondos = [
     'linear-gradient(135deg, #2563eb 0%, #7c3aed 100%)',
@@ -440,11 +475,20 @@
   };
 
   window.createTablero = async function() {
-    const nombre = document.getElementById('newTableroNombre').value;
+    const nombre = document.getElementById('newTableroNombre').value.trim();
+    if (!nombre) {
+      showToast('El nombre no puede estar vacío', true);
+      return;
+    }
     const emoji = document.getElementById('newTableroEmoji').value || '📌';
     const color = document.getElementById('colorPickerNew').dataset.color || fondos[0];
     try {
-      await addDoc(collection(db, 'tableros'), {nombre, emoji, color, creadoPor: user.email, creadoEn: new Date()});
+      await addDoc(collection(db, 'tableros'), {
+        nombre, emoji, color,
+        creadoPor: user.email,
+        creadoEn: new Date(),
+        miembros: [user.email]
+      });
       closeModal('tableroModal');
       document.getElementById('newTableroNombre').value = '';
       await loadData();
@@ -579,30 +623,51 @@
     }
   };
 
-  window.createLista = async function() {
-    const nombre = prompt('Nombre de la lista:');
-    if (!nombre) return;
+  window.createLista = function() {
+    document.getElementById('newListaNombre').value = '';
+    document.getElementById('listaModal').classList.add('active');
+    setTimeout(() => document.getElementById('newListaNombre').focus(), 100);
+  };
+
+  window.confirmCreateLista = async function() {
+    const nombre = document.getElementById('newListaNombre').value.trim();
+    if (!nombre) {
+      showToast('Por favor ingresa un nombre para la lista', true);
+      return;
+    }
     try {
       await addDoc(collection(db, 'listas'), {tableroId: currentTableroId, nombre, orden: 0, creadoEn: new Date()});
       await loadData();
       renderKanban();
+      closeModal('listaModal');
       showToast('Lista creada ✓');
     } catch (err) {
       showToast('Error: ' + err.message, true);
     }
   };
 
-  window.createTarjeta = async function(listaId) {
-    const titulo = prompt('Título:');
-    if (!titulo) return;
+  window.createTarjeta = function(listaId) {
+    currentListaIdForNewTarjeta = listaId;
+    document.getElementById('newTarjetaTitulo').value = '';
+    document.getElementById('nuevaTarjetaModal').classList.add('active');
+    setTimeout(() => document.getElementById('newTarjetaTitulo').focus(), 100);
+  };
+
+  window.confirmCreateTarjeta = async function() {
+    const titulo = document.getElementById('newTarjetaTitulo').value.trim();
+    if (!titulo) {
+      showToast('Por favor ingresa un título para la tarjeta', true);
+      return;
+    }
     try {
       await addDoc(collection(db, 'tarjetas'), {
-        listaId, tableroId: currentTableroId, titulo, descripcion: '', 
-        etiquetas: [], asignados: [], adjuntos: [], comentarios: [], 
+        listaId: currentListaIdForNewTarjeta, tableroId: currentTableroId, titulo, descripcion: '',
+        etiquetas: [], asignados: [], adjuntos: [], comentarios: [],
         creadoPor: user.email, creadoEn: new Date()
       });
       await loadData();
       renderKanban();
+      closeModal('nuevaTarjetaModal');
       showToast('Tarjeta creada ✓');
     } catch (err) {
       showToast('Error: ' + err.message, true);
@@ -745,7 +810,16 @@
 
   function renderAsignados(asignados) {
     const list = document.getElementById('asignadosList');
-    list.innerHTML = usuarios.map(u => `
+    const tablero = tableros.find(t => t.id === currentTableroId);
+    const miembros = tablero?.miembros || [];
+    const miembrosList = usuarios.filter(u => miembros.includes(u.email));
+
+    if (miembrosList.length === 0) {
+      list.innerHTML = '<p style="font-size: 13px; color: #64748b;">Sin miembros asignados</p>';
+      return;
+    }
+
+    list.innerHTML = miembrosList.map(u => `
       <label style="display: flex; gap: 8px; cursor: pointer; font-size: 13px; align-items: center;">
         <input type="checkbox" ${asignados.includes(u.email) ? 'checked' : ''} onchange="updateAsignados('${u.email}')">
         <div class="avatar-mini" style="width: 24px; height: 24px;">${u.email[0].toUpperCase()}</div>
@@ -792,15 +866,30 @@
   };
 
   window.performSearch = function() {
-    const search = document.getElementById('searchGlobal').value.toLowerCase();
-    if (!search) {
+    searchTerm = document.getElementById('searchGlobal').value.toLowerCase();
+    if (!searchTerm) {
+      tarjetasFiltradas = null;
+      if (currentTableroId) {
+        renderKanban();
+      } else {
+        document.getElementById('tablerosView').classList.add('active');
+        document.getElementById('kanbanView').classList.remove('active');
+        renderTableros();
+      }
+      return;
+    }
+    if (!currentTableroId) {
       document.getElementById('tablerosView').classList.add('active');
       document.getElementById('kanbanView').classList.remove('active');
       renderTableros();
       return;
     }
-    const resultados = tarjetas.filter(t => t.titulo.toLowerCase().includes(search) || (t.descripcion || '').toLowerCase().includes(search));
-    showToast(`${resultados.length} tarjeta${resultados.length !== 1 ? 's' : ''} encontrada${resultados.length !== 1 ? 's' : ''}`);
+    tarjetasFiltradas = tarjetas.filter(t =>
+      (t.titulo || '').toLowerCase().includes(searchTerm) ||
+      (t.descripcion || '').toLowerCase().includes(searchTerm)
+    );
+    showToast(`${tarjetasFiltradas.length} tarjeta${tarjetasFiltradas.length !== 1 ? 's' : ''} encontrada${tarjetasFiltradas.length !== 1 ? 's' : ''}`);
+    renderKanban();
   };
 
   window.showFiltros = function() {
