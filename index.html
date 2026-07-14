@@ -229,10 +229,17 @@
     </div>
     <div class="modal-body" style="grid-template-columns: 1fr;">
       <div class="modal-section">
+        <label class="modal-section-title">Nombre del tablero</label>
+        <input type="text" id="editTableroNombre" class="input-text" placeholder="Nombre">
+      </div>
+      <div class="modal-section">
         <label class="modal-section-title">Cambiar fondo</label>
         <div class="color-picker" id="colorPickerEdit"></div>
       </div>
-      <button class="btn btn-primary" onclick="updateTableroColor()">Guardar</button>
+      <div style="display: flex; gap: 8px;">
+        <button class="btn btn-primary" style="flex: 1;" onclick="updateTableroColor()">Guardar cambios</button>
+        <button class="btn btn-danger" style="flex: 1;" onclick="deleteTablero()">🗑️ Eliminar</button>
+      </div>
     </div>
   </div>
 </div>
@@ -513,13 +520,24 @@
     }
   };
 
-  window.openTablero = function(id) {
+  window.openTablero = async function(id) {
     currentTableroId = id;
     const t = tableros.find(x => x.id === id);
     document.getElementById('tableroName').textContent = t.emoji + ' ' + t.nombre;
     document.getElementById('kanbanView').style.background = t.color || fondos[0];
     filtros = {};
     document.getElementById('filterBar').style.display = 'none';
+
+    // Inicializar miembros si no existen (migración para tableros antiguos)
+    if (!t.miembros || !Array.isArray(t.miembros)) {
+      try {
+        await updateDoc(doc(db, 'tableros', id), {miembros: [t.creadoPor || user.email]});
+        await loadData();
+      } catch (err) {
+        console.error('Error inicializando miembros:', err);
+      }
+    }
+
     renderKanban();
     document.getElementById('tablerosView').classList.remove('active');
     document.getElementById('kanbanView').classList.add('active');
