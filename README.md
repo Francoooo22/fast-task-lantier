@@ -156,13 +156,31 @@ Gradientes predefinidos para tableros:
 5. Cian → Azul celeste
 6. Ámbar → Naranja
 
-## 🐛 Bugs y Limitaciones Conocidas
+## 📝 Cambios Recientes (14 Jul 2026)
+
+### ✅ Bugs Arreglados
+- **🔴 CRÍTICO**: Reemplazados `prompt()` nativos por modales propios (crea/lista/tarjeta)
+- **🟠 ALTO**: Validación de nombres en tableros y listas (no permite vacíos)
+- **🟠 ALTO**: Agregar funcionalidad de renombrar y eliminar tableros/listas
+- **🟡 MEDIO**: Búsqueda global ahora funciona correctamente
+- **🟡 MEDIO**: Filtros por etiquetas y usuarios funcionan correctamente
+- **🔒 SEGURIDAD**: Restricción de usuarios por tablero (privacidad mejorada)
+
+### 🎯 Mejoras de UX
+- Modales estilizados y no-bloqueantes
+- Mensajes de confirmación antes de eliminar
+- Validaciones de entrada de datos
+- Filtros visuales con estado activo
+- Búsqueda con contador de resultados
+- Gestión de miembros por tablero
+
+## 🐛 Limitaciones Conocidas
 
 - [ ] Reordenar listas (está parcialmente implementado)
-- [ ] Búsqueda global no filtra por tablero
 - [ ] No hay notificaciones de cambios en tiempo real
 - [ ] No hay rol de administrador
 - [ ] La sincronización es por evento (no es en tiempo real multi-sesión)
+- [ ] No hay checklists/subtareas (feature futura)
 
 ## 🔮 Roadmap
 

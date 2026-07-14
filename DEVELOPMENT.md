@@ -223,15 +223,71 @@ firebase deploy
 - DigitalOcean
 - Azure Static Web Apps
 
+## Cambios Recientes (14 Jul 2026)
+
+### Fixes Completados
+
+**1. Reemplazar prompt() por Modales (Crítico)**
+- Agregados: `listaModal` y `nuevaTarjetaModal`
+- Funciones nuevas: `confirmCreateLista()` y `confirmCreateTarjeta()`
+- Validación integrada
+- No-bloqueante, mobile-friendly
+
+**2. Validación de Nombres**
+- `createTablero()`: Valida nombre no vacío
+- `confirmCreateLista()`: Valida nombre no vacío
+- `confirmCreateTarjeta()`: Valida título no vacío
+
+**3. Eliminar/Renombrar Tableros y Listas**
+- Modal `editTableroModal`: Campo rename + botón eliminar
+- Nuevo modal `editListaModal`: Rename + Delete
+- Botón menú (⋮) en cada lista
+- Funciones: `updateTablero()`, `deleteTablero()`, `updateLista()`, `deleteLista()`
+- Confirmaciones antes de eliminar
+
+**4. Búsqueda Global (Bug Fix)**
+- Variables globales: `searchTerm`, `tarjetasFiltradas`
+- Integración en `renderKanban()`
+- Contador de resultados
+- Funciona en tiempo real
+
+**5. Filtros por Etiqueta/Usuario (Bug Fix)**
+- Lógica de filtrado corregida en `renderKanban()`
+- Multiple filters simultáneamente
+- Visual clara de filtros activos
+- Toast de confirmación
+
+**6. Seguridad - Restricción de Usuarios (Bug Fix)**
+- Campo `miembros` en cada tablero
+- Filtros restringidos a miembros del tablero
+- Emails legibles (no IDs internos)
+- Panel "Miembros del tablero" en modal
+- Funciones: `renderMiembros()`, `addMiembroTablero()`, `removeMiembroTablero()`
+- Migración automática de datos antiguos
+
+### Commits Realizados
+- `8e54010` - Fix: Reemplazar prompt() por modales propios
+- `3efed71` - Fix: Implementar búsqueda funcional
+- `7cefaef` - Fix: Implementar filtros funcionales
+- `d647644` - Fix: Seguridad y gestión de miembros
+
+### Estado Actual
+- ✅ MVP funcional con todas las mejoras
+- ✅ Deployado en Firebase Hosting
+- ✅ GitHub actualizado
+- ✅ Documentación completa
+
 ## Próximos Pasos
 
 1. **Refactor**: Separar HTML, CSS y JS en archivos independientes
 2. **Testing**: Agregar tests unitarios y E2E
-3. **Build**: Agregar minificación y bundling
-4. **CI/CD**: Automatizar tests y deploys
-5. **Análisis**: Agregar Google Analytics
-6. **Seguridad**: Implementar reglas de Firestore más restrictivas
+3. **Features**: Checklists/subtareas, historial, notificaciones
+4. **Build**: Agregar minificación y bundling
+5. **CI/CD**: Automatizar tests y deploys
+6. **Análisis**: Agregar Google Analytics
+7. **Reglas Firestore**: Implementar reglas de seguridad más restrictivas
 
 ---
 
-**Última actualización**: Julio 2026
+**Última actualización**: 14 Julio 2026  
+**Estado**: MVP v2.0 - Bugs Críticos Resueltos
