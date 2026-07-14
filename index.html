@@ -997,11 +997,17 @@
   function renderAsignados(asignados) {
     const list = document.getElementById('asignadosList');
     const tablero = tableros.find(t => t.id === currentTableroId);
-    const miembros = tablero?.miembros || [];
+    let miembros = tablero?.miembros || [];
+
+    // Si no hay miembros, agregar el usuario actual
+    if (miembros.length === 0 && user?.email) {
+      miembros = [user.email];
+    }
+
     const miembrosList = usuarios.filter(u => miembros.includes(u.email));
 
     if (miembrosList.length === 0) {
-      list.innerHTML = '<p style="font-size: 13px; color: #64748b;">Sin miembros asignados</p>';
+      list.innerHTML = '<p style="font-size: 13px; color: #64748b;">Sin miembros en tablero</p>';
       return;
     }
 
@@ -1098,7 +1104,11 @@
 
       // Filtrar solo miembros del tablero actual
       const tablero = tableros.find(t => t.id === currentTableroId);
-      const miembros = tablero?.miembros || [];
+      let miembros = tablero?.miembros || [];
+      // Si no hay miembros, agregar el usuario actual
+      if (miembros.length === 0 && user?.email) {
+        miembros = [user.email];
+      }
       const miembrosList = usuarios.filter(u => miembros.includes(u.email));
 
       html += miembrosList.map(u => {
