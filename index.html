@@ -374,7 +374,7 @@
 <script type="module">
   import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.0/firebase-app.js';
   import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.7.0/firebase-auth.js';
-  import { getFirestore, collection, addDoc, updateDoc, deleteDoc, doc, getDocs } from 'https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore.js';
+  import { getFirestore, collection, addDoc, updateDoc, deleteDoc, doc, getDocs, setDoc } from 'https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore.js';
   import { getStorage, ref, uploadBytes, getDownloadURL, deleteObject } from 'https://www.gstatic.com/firebasejs/10.7.0/firebase-storage.js';
 
   const firebaseConfig = {
@@ -459,9 +459,9 @@
       tableros = (await getDocs(collection(db, 'tableros'))).docs.map(d => ({id: d.id, ...d.data()}));
       listas = (await getDocs(collection(db, 'listas'))).docs.map(d => ({id: d.id, ...d.data()}));
       tarjetas = (await getDocs(collection(db, 'tarjetas'))).docs.map(d => ({id: d.id, ...d.data()}));
-      usuarios = (await getDocs(collection(db, 'usuarios'))).docs.map(d => ({id: d.id, email: d.id}));
+      usuarios = (await getDocs(collection(db, 'usuarios'))).docs.map(d => ({id: d.id, email: d.data().email || d.id}));
       if (!usuarios.find(u => u.email === user.email)) {
-        await addDoc(collection(db, 'usuarios'), {email: user.email});
+        await setDoc(doc(db, 'usuarios', user.email), {email: user.email});
         usuarios.push({id: user.email, email: user.email});
       }
     } catch (err) {
