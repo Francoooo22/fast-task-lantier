@@ -1,0 +1,846 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Fast Task Lantier Pro</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f0f2f5; color: #0f172a; }
+    
+    .login-screen { display: flex; align-items: center; justify-content: center; min-height: 100vh; background: linear-gradient(135deg, #2563eb 0%, #7c3aed 100%); }
+    .login-card { background: white; padding: 40px; border-radius: 12px; box-shadow: 0 8px 24px rgba(0,0,0,.15); width: 100%; max-width: 380px; }
+    .login-card h1 { text-align: center; margin-bottom: 10px; font-size: 28px; }
+    .login-card p { text-align: center; color: #64748b; margin-bottom: 30px; }
+    .form-group { margin-bottom: 16px; }
+    .form-group label { display: block; margin-bottom: 6px; font-size: 13px; font-weight: 600; }
+    .form-group input { width: 100%; padding: 10px 12px; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 14px; }
+    .form-group input:focus { outline: none; border-color: #2563eb; box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1); }
+    
+    .btn { padding: 10px 16px; border: none; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; transition: all .15s ease; display: inline-flex; align-items: center; gap: 6px; }
+    .btn-primary { background: #2563eb; color: white; width: 100%; justify-content: center; }
+    .btn-primary:hover { background: #1d4ed8; }
+    .btn-secondary { background: #e2e8f0; color: #0f172a; padding: 6px 12px; }
+    .btn-secondary:hover { background: #cbd5e0; }
+    .btn-sm { padding: 6px 10px; font-size: 12px; }
+    .btn-danger { background: #ef4444; color: white; }
+    .btn-danger:hover { background: #dc2626; }
+    .btn-icon { padding: 8px; }
+    
+    .topbar { background: white; border-bottom: 1px solid #e2e8f0; padding: 12px 20px; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 100; box-shadow: 0 1px 3px rgba(0,0,0,.05); }
+    .topbar-left { display: flex; align-items: center; gap: 16px; flex: 1; }
+    .topbar-logo { font-size: 20px; font-weight: 700; color: #2563eb; cursor: pointer; }
+    .search-box { flex: 1; max-width: 400px; position: relative; }
+    .search-box input { width: 100%; padding: 8px 12px 8px 32px; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 13px; }
+    .search-box input:focus { outline: none; border-color: #2563eb; }
+    
+    .view { display: none; }
+    .view.active { display: block; animation: fadeIn .3s ease; }
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+    
+    .tableros-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 16px; padding: 20px; }
+    .tablero-card { cursor: pointer; border-radius: 12px; min-height: 120px; display: flex; flex-direction: column; justify-content: space-between; padding: 20px; color: white; position: relative; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,.1); transition: transform .15s ease, box-shadow .15s ease; }
+    .tablero-card::before { content: ''; position: absolute; inset: 0; z-index: -1; background-size: cover; }
+    .tablero-card:hover { transform: translateY(-4px); box-shadow: 0 8px 16px rgba(0,0,0,.15); }
+    .tablero-emoji { font-size: 32px; }
+    .tablero-nombre { font-size: 16px; font-weight: 600; margin-top: 10px; text-shadow: 0 1px 2px rgba(0,0,0,.2); }
+    .tablero-stats { font-size: 13px; opacity: 0.9; margin-top: 8px; }
+    .new-tablero-card { background: #f8fafc; border: 2px dashed #cbd5e0; color: #475569; padding: 20px; border-radius: 12px; cursor: pointer; display: flex; align-items: center; justify-content: center; min-height: 120px; font-weight: 600; transition: all .15s; }
+    .new-tablero-card:hover { background: #e2e8f0; color: #0f172a; }
+    
+    .kanban-header { padding: 16px 20px; border-bottom: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center; }
+    .kanban-title { font-size: 20px; font-weight: 700; }
+    .kanban-controls { display: flex; gap: 8px; }
+    
+    .kanban-board { display: flex; gap: 16px; padding: 16px; overflow-x: auto; min-height: calc(100vh - 100px); }
+    
+    .lista { background: #ebecf0; border-radius: 12px; width: 300px; flex-shrink: 0; display: flex; flex-direction: column; max-height: calc(100vh - 100px); cursor: grab; }
+    .lista.dragging-lista { opacity: 0.5; }
+    .lista-header { padding: 12px; font-weight: 600; display: flex; justify-content: space-between; align-items: center; cursor: grab; }
+    .lista-count { background: #bdc3c7; color: white; border-radius: 20px; padding: 2px 8px; font-size: 12px; font-weight: 600; }
+    .lista-cards { flex: 1; overflow-y: auto; padding: 8px; display: flex; flex-direction: column; gap: 8px; }
+    .lista-cards.drag-over { background: rgba(37, 99, 235, 0.1); border-radius: 8px; }
+    
+    .tarjeta { background: white; padding: 12px; border-radius: 8px; cursor: pointer; box-shadow: 0 1px 3px rgba(0,0,0,.1); border-left: 4px solid #2563eb; transition: all .15s ease; user-select: none; }
+    .tarjeta:hover { box-shadow: 0 4px 12px rgba(0,0,0,.15); transform: translateY(-2px); }
+    .tarjeta.dragging { opacity: 0.5; }
+    
+    .tarjeta-titulo { font-weight: 500; font-size: 14px; margin-bottom: 6px; }
+    .tarjeta-etiquetas { display: flex; gap: 4px; flex-wrap: wrap; margin-bottom: 6px; }
+    .tarjeta-tag { display: inline-block; padding: 2px 6px; border-radius: 3px; font-size: 11px; font-weight: 500; }
+    .tarjeta-attachments { font-size: 11px; color: #64748b; margin-bottom: 4px; }
+    .tarjeta-footer { display: flex; justify-content: space-between; align-items: center; font-size: 12px; margin-top: 8px; }
+    .tarjeta-avatares { display: flex; gap: -3px; }
+    .avatar-mini { width: 20px; height: 20px; border-radius: 50%; background: #2563eb; color: white; display: flex; align-items: center; justify-content: center; font-size: 9px; font-weight: 600; border: 2px solid white; margin-left: -6px; }
+    
+    .add-tarjeta-btn { width: 100%; padding: 10px; text-align: left; background: rgba(0,0,0,.05); border: none; border-radius: 8px; color: #475569; font-size: 13px; cursor: pointer; transition: all .15s; }
+    .add-tarjeta-btn:hover { background: rgba(0,0,0,.08); }
+    
+    .add-lista-btn { width: 300px; flex-shrink: 0; padding: 12px; background: rgba(0,0,0,.05); border-radius: 12px; border: none; color: #475569; font-weight: 600; cursor: pointer; height: fit-content; }
+    
+    .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.5); z-index: 1000; align-items: center; justify-content: center; }
+    .modal-overlay.active { display: flex; }
+    .modal { background: white; border-radius: 12px; width: 90%; max-width: 700px; max-height: 90vh; overflow-y: auto; box-shadow: 0 20px 60px rgba(0,0,0,.3); animation: slideIn .3s ease; }
+    @keyframes slideIn { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+    
+    .modal-header { padding: 20px; border-bottom: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center; }
+    .modal-title { font-size: 18px; font-weight: 600; }
+    .modal-close { background: none; border: none; font-size: 20px; cursor: pointer; color: #64748b; }
+    .modal-body { padding: 20px; display: grid; grid-template-columns: 1fr 280px; gap: 20px; }
+    .modal-col-left { display: flex; flex-direction: column; gap: 16px; }
+    .modal-col-right { border-left: 1px solid #e2e8f0; padding-left: 16px; display: flex; flex-direction: column; gap: 16px; }
+    
+    .modal-section { display: flex; flex-direction: column; gap: 8px; }
+    .modal-section-title { font-weight: 600; font-size: 12px; text-transform: uppercase; color: #64748b; }
+    
+    .input-text { padding: 10px; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 14px; }
+    .input-text:focus { outline: none; border-color: #2563eb; box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1); }
+    
+    .textarea { width: 100%; min-height: 80px; padding: 10px; border: 1px solid #e2e8f0; border-radius: 8px; font-family: inherit; font-size: 14px; resize: vertical; }
+    .textarea:focus { outline: none; border-color: #2563eb; box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1); }
+    
+    .color-picker { display: grid; grid-template-columns: repeat(6, 1fr); gap: 8px; }
+    .color-option { width: 40px; height: 40px; border-radius: 8px; cursor: pointer; border: 3px solid transparent; transition: border .15s; }
+    .color-option:hover, .color-option.selected { border-color: #0f172a; }
+    
+    .comentario { padding: 12px; background: #f8fafc; border-radius: 8px; font-size: 13px; margin-bottom: 8px; }
+    .comentario-autor { font-weight: 600; color: #0f172a; font-size: 12px; }
+    .comentario-fecha { color: #64748b; font-size: 11px; }
+    .comentario-texto { margin-top: 4px; color: #475569; }
+    
+    .comentario-input { display: flex; gap: 8px; margin-top: 12px; }
+    .comentario-input input { flex: 1; padding: 8px; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 13px; }
+    .comentario-input button { padding: 6px 12px; }
+    
+    .etiqueta-input { display: flex; gap: 8px; }
+    .etiqueta-color { width: 30px; height: 30px; border-radius: 6px; cursor: pointer; border: none; }
+    .etiquetas-list { display: flex; gap: 6px; flex-wrap: wrap; }
+    .etiqueta-badge { padding: 4px 8px; border-radius: 4px; font-size: 12px; display: inline-flex; align-items: center; gap: 4px; }
+    .etiqueta-remove { cursor: pointer; font-weight: bold; }
+    
+    .file-upload { padding: 12px; border: 2px dashed #e2e8f0; border-radius: 8px; text-align: center; cursor: pointer; transition: all .15s; }
+    .file-upload:hover { border-color: #2563eb; background: rgba(37, 99, 235, 0.05); }
+    
+    .adjunto { padding: 12px; background: #f8fafc; border-radius: 8px; display: flex; gap: 10px; align-items: flex-start; margin-bottom: 8px; }
+    .adjunto-preview { width: 80px; height: 80px; border-radius: 6px; background: #e2e8f0; display: flex; align-items: center; justify-content: center; overflow: hidden; flex-shrink: 0; }
+    .adjunto-preview img { width: 100%; height: 100%; object-fit: cover; }
+    .adjunto-info { flex: 1; display: flex; flex-direction: column; gap: 4px; }
+    .adjunto-nombre { font-weight: 500; font-size: 12px; word-break: break-word; }
+    .adjunto-size { font-size: 11px; color: #64748b; }
+    .adjunto-delete { cursor: pointer; color: #ef4444; font-weight: bold; }
+    
+    .toast { position: fixed; bottom: 20px; right: 20px; background: #16a34a; color: white; padding: 12px 16px; border-radius: 8px; z-index: 2000; box-shadow: 0 4px 12px rgba(0,0,0,.15); }
+    .toast.error { background: #ef4444; }
+    
+    .filter-bar { padding: 12px 20px; border-bottom: 1px solid #e2e8f0; display: flex; gap: 8px; flex-wrap: wrap; }
+    .filter-badge { padding: 6px 12px; background: #e2e8f0; border-radius: 20px; font-size: 12px; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; transition: all .15s; }
+    .filter-badge:hover { background: #cbd5e0; }
+    .filter-badge .close { cursor: pointer; font-weight: bold; }
+    
+    @media (max-width: 768px) {
+      .modal-body { grid-template-columns: 1fr; }
+      .modal-col-right { border-left: none; border-top: 1px solid #e2e8f0; padding-left: 0; padding-top: 16px; }
+      .tableros-grid { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); }
+      .adjunto-preview { width: 60px; height: 60px; }
+    }
+  </style>
+</head>
+<body>
+
+<div id="app">
+  <div id="loginView" class="view active">
+    <div class="login-screen">
+      <div class="login-card">
+        <h1>📋 Fast Task Lantier</h1>
+        <p>Gestor profesional de proyectos</p>
+        <form id="loginForm" onsubmit="handleLogin(event)">
+          <div class="form-group">
+            <label>Email</label>
+            <input type="email" id="loginEmail" placeholder="tu@email.com" required>
+          </div>
+          <div class="form-group">
+            <label>Contraseña</label>
+            <input type="password" id="loginPassword" placeholder="••••••••" required>
+          </div>
+          <button type="submit" class="btn btn-primary">Ingresar</button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <div id="mainApp" style="display: none;">
+    <div class="topbar">
+      <div class="topbar-left">
+        <div class="topbar-logo" onclick="backToTableros()">📋 Fast Task</div>
+        <div class="search-box">
+          <input type="text" id="searchGlobal" placeholder="Buscar tarjetas..." onkeyup="performSearch()">
+        </div>
+      </div>
+      <button class="btn btn-secondary btn-sm" onclick="handleLogout()">Salir</button>
+    </div>
+
+    <div id="tablerosView" class="view active">
+      <div class="tableros-grid" id="tablerosGrid"></div>
+    </div>
+
+    <div id="kanbanView" class="view">
+      <div class="kanban-header">
+        <div>
+          <button class="btn btn-secondary btn-sm" onclick="backToTableros()">← Volver</button>
+          <span class="kanban-title" id="tableroName"></span>
+        </div>
+        <div class="kanban-controls">
+          <button class="btn btn-secondary btn-sm" onclick="showFiltros()">🔍 Filtros</button>
+          <button class="btn btn-secondary btn-sm" onclick="editTableroModal()">⚙️ Editar</button>
+        </div>
+      </div>
+      
+      <div id="filterBar" class="filter-bar" style="display: none;"></div>
+      
+      <div class="kanban-board" id="kanbanBoard"></div>
+    </div>
+  </div>
+</div>
+
+<!-- MODALES -->
+<div id="tableroModal" class="modal-overlay">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">Nuevo tablero</div>
+      <button class="modal-close" onclick="closeModal('tableroModal')">×</button>
+    </div>
+    <div class="modal-body" style="grid-template-columns: 1fr;">
+      <input type="text" id="newTableroNombre" class="input-text" placeholder="Nombre del tablero" required>
+      <input type="text" id="newTableroEmoji" class="input-text" placeholder="Emoji" value="📌" maxlength="2">
+      <div class="modal-section">
+        <label class="modal-section-title">Fondo</label>
+        <div class="color-picker" id="colorPickerNew"></div>
+      </div>
+      <button class="btn btn-primary" onclick="createTablero()">Crear tablero</button>
+    </div>
+  </div>
+</div>
+
+<div id="editTableroModal" class="modal-overlay">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">Editar tablero</div>
+      <button class="modal-close" onclick="closeModal('editTableroModal')">×</button>
+    </div>
+    <div class="modal-body" style="grid-template-columns: 1fr;">
+      <div class="modal-section">
+        <label class="modal-section-title">Cambiar fondo</label>
+        <div class="color-picker" id="colorPickerEdit"></div>
+      </div>
+      <button class="btn btn-primary" onclick="updateTableroColor()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<div id="tarjetaModal" class="modal-overlay">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">Tarjeta</div>
+      <button class="modal-close" onclick="closeModal('tarjetaModal')">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="modal-col-left">
+        <input type="text" id="tarjetaTitulo" class="input-text" placeholder="Título" style="font-size: 16px; font-weight: 600;">
+        <div class="modal-section">
+          <label class="modal-section-title">Descripción</label>
+          <textarea id="tarjetaDesc" class="textarea" placeholder="Descripción..."></textarea>
+        </div>
+        
+        <div class="modal-section">
+          <label class="modal-section-title">Etiquetas</label>
+          <div class="etiqueta-input">
+            <input type="color" id="etiquetaColor" class="etiqueta-color" value="#2563eb">
+            <input type="text" id="etiquetaTexto" class="input-text" placeholder="Nombre" style="flex: 1;">
+            <button class="btn btn-secondary btn-sm" onclick="addEtiqueta()">+</button>
+          </div>
+          <div class="etiquetas-list" id="etiquetasList"></div>
+        </div>
+        
+        <div class="modal-section">
+          <label class="modal-section-title">Adjuntos</label>
+          <div id="adjuntosList"></div>
+          <label class="file-upload" onclick="document.getElementById('fileInput').click()">📎 Adjuntar archivo</label>
+          <input type="file" id="fileInput" style="display: none;" onchange="uploadFile()">
+        </div>
+        
+        <div class="modal-section">
+          <label class="modal-section-title">Comentarios</label>
+          <div id="comentariosList" style="max-height: 300px; overflow-y: auto;"></div>
+          <div class="comentario-input">
+            <input type="text" id="comentarioTexto" placeholder="Escribir comentario...">
+            <button class="btn btn-primary btn-sm" onclick="addComentario()">Enviar</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-col-right">
+        <div class="modal-section">
+          <label class="modal-section-title">Asignados</label>
+          <div id="asignadosList"></div>
+        </div>
+        
+        <div class="modal-section">
+          <label class="modal-section-title">Fecha vencimiento</label>
+          <input type="date" id="tarjetaFecha" class="input-text">
+        </div>
+        
+        <div class="modal-section">
+          <label class="modal-section-title">Mover a lista</label>
+          <select id="tarjetaLista" class="input-text"></select>
+        </div>
+        
+        <button class="btn btn-danger" style="width: 100%; justify-content: center;" onclick="deleteTarjeta()">🗑️ Eliminar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="toast" class="toast" style="display: none;"></div>
+
+<script type="module">
+  import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.0/firebase-app.js';
+  import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.7.0/firebase-auth.js';
+  import { getFirestore, collection, addDoc, updateDoc, deleteDoc, doc, getDocs } from 'https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore.js';
+  import { getStorage, ref, uploadBytes, getDownloadURL, deleteObject } from 'https://www.gstatic.com/firebasejs/10.7.0/firebase-storage.js';
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyBYMDb8mLokqkLDdVjOsmuNmiUAzUIXcFg",
+    authDomain: "fast-task-lantier.firebaseapp.com",
+    projectId: "fast-task-lantier",
+    storageBucket: "fast-task-lantier.firebasestorage.app",
+    messagingSenderId: "317359004557",
+    appId: "1:317359004557:web:1d019706d74ac85e313bc4"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const auth = getAuth(app);
+  const db = getFirestore(app);
+  const storage = getStorage(app);
+
+  let user = null;
+  let currentTableroId = null;
+  let currentTarjetaId = null;
+  let tableros = [];
+  let listas = [];
+  let tarjetas = [];
+  let usuarios = [];
+  let filtros = {};
+  
+  const fondos = [
+    'linear-gradient(135deg, #2563eb 0%, #7c3aed 100%)',
+    'linear-gradient(135deg, #16a34a 0%, #84cc16 100%)',
+    'linear-gradient(135deg, #ef4444 0%, #f97316 100%)',
+    'linear-gradient(135deg, #8b5cf6 0%, #ec4899 100%)',
+    'linear-gradient(135deg, #06b6d4 0%, #0891b2 100%)',
+    'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
+  ];
+
+  function showToast(msg, isError = false) {
+    const toast = document.getElementById('toast');
+    toast.textContent = msg;
+    toast.className = 'toast' + (isError ? ' error' : '');
+    toast.style.display = 'block';
+    setTimeout(() => toast.style.display = 'none', 3000);
+  }
+
+  window.handleLogin = async function(e) {
+    e.preventDefault();
+    const email = document.getElementById('loginEmail').value;
+    const pwd = document.getElementById('loginPassword').value;
+    try {
+      await signInWithEmailAndPassword(auth, email, pwd).catch(async err => {
+        if (err.code === 'auth/user-not-found') {
+          await createUserWithEmailAndPassword(auth, email, pwd);
+        }
+      });
+    } catch (err) {
+      showToast('Error: ' + err.message, true);
+    }
+  };
+
+  window.handleLogout = function() {
+    signOut(auth);
+  };
+
+  onAuthStateChanged(auth, async u => {
+    if (u) {
+      user = u;
+      document.getElementById('loginView').style.display = 'none';
+      document.getElementById('mainApp').style.display = 'block';
+      await loadData();
+      renderTableros();
+    } else {
+      user = null;
+      document.getElementById('loginView').style.display = 'block';
+      document.getElementById('mainApp').style.display = 'none';
+    }
+  });
+
+  async function loadData() {
+    try {
+      tableros = (await getDocs(collection(db, 'tableros'))).docs.map(d => ({id: d.id, ...d.data()}));
+      listas = (await getDocs(collection(db, 'listas'))).docs.map(d => ({id: d.id, ...d.data()}));
+      tarjetas = (await getDocs(collection(db, 'tarjetas'))).docs.map(d => ({id: d.id, ...d.data()}));
+      usuarios = (await getDocs(collection(db, 'usuarios'))).docs.map(d => ({id: d.id, email: d.id}));
+      if (!usuarios.find(u => u.email === user.email)) {
+        await addDoc(collection(db, 'usuarios'), {email: user.email});
+        usuarios.push({id: user.email, email: user.email});
+      }
+    } catch (err) {
+      showToast('Error: ' + err.message, true);
+    }
+  }
+
+  function renderColorPicker(targetId) {
+    const picker = document.getElementById(targetId);
+    picker.innerHTML = fondos.map((f, i) => `
+      <div class="color-option" style="background: ${f};" onclick="selectColor(${i}, '${targetId}')"></div>
+    `).join('');
+  }
+
+  window.selectColor = function(index, targetId) {
+    const picker = document.getElementById(targetId);
+    picker.querySelectorAll('.color-option').forEach(el => el.classList.remove('selected'));
+    event.target.classList.add('selected');
+    picker.dataset.color = fondos[index];
+  };
+
+  function renderTableros() {
+    const grid = document.getElementById('tablerosGrid');
+    let html = tableros.map((t, i) => `
+      <div class="tablero-card" style="background: ${t.color || fondos[0]};" onclick="openTablero('${t.id}')">
+        <div>
+          <div class="tablero-emoji">${t.emoji || '📌'}</div>
+          <div class="tablero-nombre">${t.nombre}</div>
+          <div class="tablero-stats">${tarjetas.filter(x => x.tableroId === t.id).length} tarjetas</div>
+        </div>
+      </div>
+    `).join('');
+    html += '<div class="new-tablero-card" onclick="openTableroModal()">+ Nuevo tablero</div>';
+    grid.innerHTML = html;
+  }
+
+  window.openTableroModal = function() {
+    renderColorPicker('colorPickerNew');
+    document.getElementById('tableroModal').classList.add('active');
+  };
+
+  window.editTableroModal = function() {
+    renderColorPicker('colorPickerEdit');
+    document.getElementById('editTableroModal').classList.add('active');
+  };
+
+  window.closeModal = function(id) {
+    document.getElementById(id).classList.remove('active');
+  };
+
+  window.createTablero = async function() {
+    const nombre = document.getElementById('newTableroNombre').value;
+    const emoji = document.getElementById('newTableroEmoji').value || '📌';
+    const color = document.getElementById('colorPickerNew').dataset.color || fondos[0];
+    try {
+      await addDoc(collection(db, 'tableros'), {nombre, emoji, color, creadoPor: user.email, creadoEn: new Date()});
+      closeModal('tableroModal');
+      document.getElementById('newTableroNombre').value = '';
+      await loadData();
+      renderTableros();
+      showToast('Tablero creado ✓');
+    } catch (err) {
+      showToast('Error: ' + err.message, true);
+    }
+  };
+
+  window.updateTableroColor = async function() {
+    const color = document.getElementById('colorPickerEdit').dataset.color || fondos[0];
+    try {
+      await updateDoc(doc(db, 'tableros', currentTableroId), {color});
+      await loadData();
+      renderTableros();
+      openTablero(currentTableroId);
+      closeModal('editTableroModal');
+      showToast('Tablero actualizado ✓');
+    } catch (err) {
+      showToast('Error: ' + err.message, true);
+    }
+  };
+
+  window.openTablero = function(id) {
+    currentTableroId = id;
+    const t = tableros.find(x => x.id === id);
+    document.getElementById('tableroName').textContent = t.emoji + ' ' + t.nombre;
+    document.getElementById('kanbanView').style.background = t.color || fondos[0];
+    filtros = {};
+    document.getElementById('filterBar').style.display = 'none';
+    renderKanban();
+    document.getElementById('tablerosView').classList.remove('active');
+    document.getElementById('kanbanView').classList.add('active');
+  };
+
+  window.backToTableros = function() {
+    currentTableroId = null;
+    document.getElementById('kanbanView').classList.remove('active');
+    document.getElementById('tablerosView').classList.add('active');
+  };
+
+  function renderKanban() {
+    const board = document.getElementById('kanbanBoard');
+    const tableroListas = listas.filter(l => l.tableroId === currentTableroId).sort((a, b) => (a.orden || 0) - (b.orden || 0));
+    let html = '';
+    tableroListas.forEach((lista, i) => {
+      let tarjetasLista = tarjetas.filter(t => t.listaId === lista.id);
+      if (filtros.etiqueta) tarjetasLista = tarjetasLista.filter(t => (t.etiquetas || []).some(e => e.color === filtros.etiqueta));
+      if (filtros.asignado) tarjetasLista = tarjetasLista.filter(t => (t.asignados || []).includes(filtros.asignado));
+      const count = tarjetasLista.length;
+      html += `
+        <div class="lista" draggable="true" ondragstart="dragLista(event, '${lista.id}')" ondragover="allowDropLista(event)" ondrop="dropLista(event)" data-lista-id="${lista.id}">
+          <div class="lista-header" draggable="true">
+            <div>${lista.nombre}</div>
+            <div class="lista-count">${count}</div>
+          </div>
+          <div class="lista-cards" data-lista-id="${lista.id}" ondragover="allowDrop(event)" ondrop="dropTarjeta(event, '${lista.id}')">
+            ${tarjetasLista.map(t => renderTarjeta(t)).join('')}
+          </div>
+          <button class="add-tarjeta-btn" onclick="createTarjeta('${lista.id}')">+ Agregar tarjeta</button>
+        </div>
+      `;
+    });
+    html += '<button class="add-lista-btn" onclick="createLista()">+ Nueva lista</button>';
+    board.innerHTML = html;
+  }
+
+  window.dragLista = function(e, listaId) {
+    e.target.closest('.lista').classList.add('dragging-lista');
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('listaId', listaId);
+  };
+
+  window.allowDropLista = function(e) {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+  };
+
+  window.dropLista = function(e) {
+    e.preventDefault();
+    const listaId = e.dataTransfer.getData('listaId');
+    if (listaId) {
+      document.querySelectorAll('.lista').forEach(el => el.classList.remove('dragging-lista'));
+      showToast('Reordenar listas (próximamente)');
+    }
+  };
+
+  function renderTarjeta(t) {
+    const etiquetas = t.etiquetas || [];
+    return `
+      <div class="tarjeta" draggable="true" ondragstart="dragTarjeta(event, '${t.id}')" ondragend="dragEnd(event)" onclick="openTarjeta('${t.id}')">
+        <div class="tarjeta-titulo">${t.titulo}</div>
+        ${etiquetas.length ? `<div class="tarjeta-etiquetas">${etiquetas.map(e => `<span class="tarjeta-tag" style="background: ${e.color}33; color: ${e.color};">${e.text}</span>`).join('')}</div>` : ''}
+        ${(t.adjuntos || []).length ? `<div class="tarjeta-attachments">📎 ${t.adjuntos.length} archivo${t.adjuntos.length > 1 ? 's' : ''}</div>` : ''}
+        ${(t.comentarios || []).length ? `<div class="tarjeta-attachments">💬 ${t.comentarios.length} comentario${t.comentarios.length > 1 ? 's' : ''}</div>` : ''}
+        <div class="tarjeta-footer">
+          <div>${t.fechaVencimiento ? '📅' : ''}</div>
+          ${t.asignados && t.asignados.length ? `<div class="tarjeta-avatares">${t.asignados.slice(0,3).map(a => `<div class="avatar-mini" title="${a}">${a[0].toUpperCase()}</div>`).join('')}</div>` : ''}
+        </div>
+      </div>
+    `;
+  }
+
+  window.dragTarjeta = function(e, id) {
+    e.target.classList.add('dragging');
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('tarjetaId', id);
+  };
+
+  window.dragEnd = function(e) {
+    e.target.classList.remove('dragging');
+    document.querySelectorAll('.lista-cards').forEach(el => el.classList.remove('drag-over'));
+  };
+
+  window.allowDrop = function(e) {
+    e.preventDefault();
+    e.target.closest('.lista-cards')?.classList.add('drag-over');
+  };
+
+  window.dropTarjeta = async function(e, listaId) {
+    e.preventDefault();
+    document.querySelectorAll('.lista-cards').forEach(el => el.classList.remove('drag-over'));
+    const tarjetaId = e.dataTransfer.getData('tarjetaId');
+    try {
+      await updateDoc(doc(db, 'tarjetas', tarjetaId), {listaId});
+      await loadData();
+      renderKanban();
+      showToast('Tarjeta movida ✓');
+    } catch (err) {
+      showToast('Error: ' + err.message, true);
+    }
+  };
+
+  window.createLista = async function() {
+    const nombre = prompt('Nombre de la lista:');
+    if (!nombre) return;
+    try {
+      await addDoc(collection(db, 'listas'), {tableroId: currentTableroId, nombre, orden: 0, creadoEn: new Date()});
+      await loadData();
+      renderKanban();
+      showToast('Lista creada ✓');
+    } catch (err) {
+      showToast('Error: ' + err.message, true);
+    }
+  };
+
+  window.createTarjeta = async function(listaId) {
+    const titulo = prompt('Título:');
+    if (!titulo) return;
+    try {
+      await addDoc(collection(db, 'tarjetas'), {
+        listaId, tableroId: currentTableroId, titulo, descripcion: '', 
+        etiquetas: [], asignados: [], adjuntos: [], comentarios: [], 
+        creadoPor: user.email, creadoEn: new Date()
+      });
+      await loadData();
+      renderKanban();
+      showToast('Tarjeta creada ✓');
+    } catch (err) {
+      showToast('Error: ' + err.message, true);
+    }
+  };
+
+  window.openTarjeta = function(id) {
+    currentTarjetaId = id;
+    const t = tarjetas.find(x => x.id === id);
+    if (!t) return;
+
+    document.getElementById('tarjetaTitulo').value = t.titulo || '';
+    document.getElementById('tarjetaDesc').value = t.descripcion || '';
+    document.getElementById('tarjetaFecha').value = t.fechaVencimiento || '';
+
+    renderEtiquetas(t.etiquetas || []);
+    renderAdjuntos(t.adjuntos || []);
+    renderComentarios(t.comentarios || []);
+    renderAsignados(t.asignados || []);
+
+    const sel = document.getElementById('tarjetaLista');
+    sel.innerHTML = listas.filter(l => l.tableroId === currentTableroId).map(l => 
+      `<option value="${l.id}" ${l.id === t.listaId ? 'selected' : ''}>${l.nombre}</option>`
+    ).join('');
+
+    document.getElementById('tarjetaTitulo').onchange = () => updateTarjeta('titulo', document.getElementById('tarjetaTitulo').value);
+    document.getElementById('tarjetaDesc').onchange = () => updateTarjeta('descripcion', document.getElementById('tarjetaDesc').value);
+    document.getElementById('tarjetaFecha').onchange = () => updateTarjeta('fechaVencimiento', document.getElementById('tarjetaFecha').value);
+    sel.onchange = () => updateTarjeta('listaId', sel.value);
+
+    document.getElementById('tarjetaModal').classList.add('active');
+  };
+
+  function renderEtiquetas(etiquetas) {
+    const list = document.getElementById('etiquetasList');
+    list.innerHTML = etiquetas.map((e, i) => `
+      <span class="etiqueta-badge" style="background: ${e.color}33; color: ${e.color};">
+        ${e.text}
+        <span class="etiqueta-remove" onclick="removeEtiqueta(${i})">×</span>
+      </span>
+    `).join('');
+  }
+
+  window.addEtiqueta = async function() {
+    const color = document.getElementById('etiquetaColor').value;
+    const text = document.getElementById('etiquetaTexto').value.trim();
+    if (!text) return;
+    const t = tarjetas.find(x => x.id === currentTarjetaId);
+    const etiquetas = t.etiquetas || [];
+    etiquetas.push({color, text});
+    await updateDoc(doc(db, 'tarjetas', currentTarjetaId), {etiquetas});
+    await loadData();
+    const updated = tarjetas.find(x => x.id === currentTarjetaId);
+    renderEtiquetas(updated.etiquetas || []);
+    document.getElementById('etiquetaTexto').value = '';
+    renderKanban();
+  };
+
+  window.removeEtiqueta = async function(index) {
+    const t = tarjetas.find(x => x.id === currentTarjetaId);
+    const etiquetas = (t.etiquetas || []).filter((_, i) => i !== index);
+    await updateDoc(doc(db, 'tarjetas', currentTarjetaId), {etiquetas});
+    await loadData();
+    const updated = tarjetas.find(x => x.id === currentTarjetaId);
+    renderEtiquetas(updated.etiquetas || []);
+    renderKanban();
+  };
+
+  function renderAdjuntos(adjuntos) {
+    const list = document.getElementById('adjuntosList');
+    list.innerHTML = adjuntos.map((a, i) => `
+      <div class="adjunto">
+        <div class="adjunto-preview">
+          ${a.tipo.startsWith('image/') ? `<img src="${a.url}" alt="${a.nombre}">` : '📄'}
+        </div>
+        <div class="adjunto-info">
+          <div class="adjunto-nombre">${a.nombre}</div>
+          <div class="adjunto-size">${(a.tamaño / 1024).toFixed(1)} KB</div>
+          <div class="adjunto-delete" onclick="removeAdjunto(${i})">Eliminar</div>
+        </div>
+      </div>
+    `).join('');
+  }
+
+  window.uploadFile = async function() {
+    const file = document.getElementById('fileInput').files[0];
+    if (!file) return;
+    try {
+      const fileRef = ref(storage, `adjuntos/${currentTableroId}/${currentTarjetaId}/${file.name}`);
+      await uploadBytes(fileRef, file);
+      const url = await getDownloadURL(fileRef);
+      const t = tarjetas.find(x => x.id === currentTarjetaId);
+      const adjuntos = t.adjuntos || [];
+      adjuntos.push({nombre: file.name, url, tipo: file.type, tamaño: file.size, fecha: new Date().toISOString()});
+      await updateDoc(doc(db, 'tarjetas', currentTarjetaId), {adjuntos});
+      await loadData();
+      const updated = tarjetas.find(x => x.id === currentTarjetaId);
+      renderAdjuntos(updated.adjuntos || []);
+      renderKanban();
+      showToast('Archivo subido ✓');
+    } catch (err) {
+      showToast('Error: ' + err.message, true);
+    }
+  };
+
+  window.removeAdjunto = async function(index) {
+    const t = tarjetas.find(x => x.id === currentTarjetaId);
+    const adjuntos = (t.adjuntos || []).filter((_, i) => i !== index);
+    await updateDoc(doc(db, 'tarjetas', currentTarjetaId), {adjuntos});
+    await loadData();
+    const updated = tarjetas.find(x => x.id === currentTarjetaId);
+    renderAdjuntos(updated.adjuntos || []);
+    renderKanban();
+  };
+
+  function renderComentarios(comentarios) {
+    const list = document.getElementById('comentariosList');
+    list.innerHTML = comentarios.map(c => `
+      <div class="comentario">
+        <div class="comentario-autor">${c.autor}</div>
+        <div class="comentario-fecha">${new Date(c.fecha).toLocaleString('es-AR')}</div>
+        <div class="comentario-texto">${c.texto}</div>
+      </div>
+    `).join('');
+  }
+
+  window.addComentario = async function() {
+    const texto = document.getElementById('comentarioTexto').value.trim();
+    if (!texto) return;
+    const t = tarjetas.find(x => x.id === currentTarjetaId);
+    const comentarios = t.comentarios || [];
+    comentarios.push({texto, autor: user.email, fecha: new Date().toISOString()});
+    await updateDoc(doc(db, 'tarjetas', currentTarjetaId), {comentarios});
+    await loadData();
+    const updated = tarjetas.find(x => x.id === currentTarjetaId);
+    renderComentarios(updated.comentarios || []);
+    document.getElementById('comentarioTexto').value = '';
+    renderKanban();
+  };
+
+  function renderAsignados(asignados) {
+    const list = document.getElementById('asignadosList');
+    list.innerHTML = usuarios.map(u => `
+      <label style="display: flex; gap: 8px; cursor: pointer; font-size: 13px; align-items: center;">
+        <input type="checkbox" ${asignados.includes(u.email) ? 'checked' : ''} onchange="updateAsignados('${u.email}')">
+        <div class="avatar-mini" style="width: 24px; height: 24px;">${u.email[0].toUpperCase()}</div>
+        <span>${u.email}</span>
+      </label>
+    `).join('');
+  }
+
+  window.updateAsignados = async function(email) {
+    const t = tarjetas.find(x => x.id === currentTarjetaId);
+    let asignados = t.asignados || [];
+    if (event.target.checked) {
+      asignados.push(email);
+    } else {
+      asignados = asignados.filter(a => a !== email);
+    }
+    await updateDoc(doc(db, 'tarjetas', currentTarjetaId), {asignados});
+    await loadData();
+    renderKanban();
+  };
+
+  async function updateTarjeta(field, value) {
+    try {
+      await updateDoc(doc(db, 'tarjetas', currentTarjetaId), {[field]: value});
+      await loadData();
+      renderKanban();
+      if (field === 'listaId') closeModal('tarjetaModal');
+    } catch (err) {
+      showToast('Error: ' + err.message, true);
+    }
+  }
+
+  window.deleteTarjeta = async function() {
+    if (!confirm('¿Eliminar tarjeta?')) return;
+    try {
+      await deleteDoc(doc(db, 'tarjetas', currentTarjetaId));
+      await loadData();
+      renderKanban();
+      closeModal('tarjetaModal');
+      showToast('Tarjeta eliminada ✓');
+    } catch (err) {
+      showToast('Error: ' + err.message, true);
+    }
+  };
+
+  window.performSearch = function() {
+    const search = document.getElementById('searchGlobal').value.toLowerCase();
+    if (!search) {
+      document.getElementById('tablerosView').classList.add('active');
+      document.getElementById('kanbanView').classList.remove('active');
+      renderTableros();
+      return;
+    }
+    const resultados = tarjetas.filter(t => t.titulo.toLowerCase().includes(search) || (t.descripcion || '').toLowerCase().includes(search));
+    showToast(`${resultados.length} tarjeta${resultados.length !== 1 ? 's' : ''} encontrada${resultados.length !== 1 ? 's' : ''}`);
+  };
+
+  window.showFiltros = function() {
+    const filterBar = document.getElementById('filterBar');
+    if (filterBar.style.display === 'none') {
+      let html = '<strong style="padding-right: 16px;">Filtrar por:</strong>';
+      
+      const todasLasEtiquetas = [...new Set(tarjetas.flatMap(t => (t.etiquetas || []).map(e => JSON.stringify(e))))].map(e => JSON.parse(e));
+      html += todasLasEtiquetas.map(e => `
+        <span class="filter-badge" onclick="applyFilter('etiqueta', '${e.color}', '${e.text}')">
+          <span style="width: 12px; height: 12px; border-radius: 2px; background: ${e.color};"></span>
+          ${e.text}
+          <span class="close">×</span>
+        </span>
+      `).join('');
+      
+      html += usuarios.map(u => `
+        <span class="filter-badge" onclick="applyFilter('asignado', '${u.email}', '${u.email}')">
+          👤 ${u.email}
+          <span class="close">×</span>
+        </span>
+      `).join('');
+      
+      filterBar.innerHTML = html;
+      filterBar.style.display = 'flex';
+    } else {
+      filterBar.style.display = 'none';
+    }
+  };
+
+  window.applyFilter = function(type, value, label) {
+    const key = type + '_' + value;
+    if (filtros[key]) {
+      delete filtros[key];
+    } else {
+      filtros[key] = {type, value, label};
+    }
+    renderKanban();
+  };
+</script>
+
+</body>
+</html>
