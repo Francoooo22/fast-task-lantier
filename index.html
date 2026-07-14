@@ -459,7 +459,16 @@
       tableros = (await getDocs(collection(db, 'tableros'))).docs.map(d => ({id: d.id, ...d.data()}));
       listas = (await getDocs(collection(db, 'listas'))).docs.map(d => ({id: d.id, ...d.data()}));
       tarjetas = (await getDocs(collection(db, 'tarjetas'))).docs.map(d => ({id: d.id, ...d.data()}));
-      usuarios = (await getDocs(collection(db, 'usuarios'))).docs.map(d => ({id: d.id, email: d.data().email || d.id}));
+
+      // Cargar usuarios y deduplicar por email
+      const usuariosRaw = (await getDocs(collection(db, 'usuarios'))).docs.map(d => ({id: d.id, email: d.data().email || d.id}));
+      const emailsVistos = new Set();
+      usuarios = usuariosRaw.filter(u => {
+        if (emailsVistos.has(u.email)) return false;
+        emailsVistos.add(u.email);
+        return true;
+      });
+
       if (!usuarios.find(u => u.email === user.email)) {
         await setDoc(doc(db, 'usuarios', user.email), {email: user.email});
         usuarios.push({id: user.email, email: user.email});
@@ -1004,7 +1013,12 @@
       miembros = [user.email];
     }
 
-    const miembrosList = usuarios.filter(u => miembros.includes(u.email));
+    // Deduplicar miembros
+    miembros = [...new Set(miembros)];
+
+    // Filtrar usuarios por miembros y deduplicar por email
+    const miembrosSet = new Set(miembros);
+    const miembrosList = usuarios.filter((u, i, arr) => miembrosSet.has(u.email) && arr.findIndex(x => x.email === u.email) === i);
 
     if (miembrosList.length === 0) {
       list.innerHTML = '<p style="font-size: 13px; color: #64748b;">Sin miembros en tablero</p>';
@@ -1109,7 +1123,11 @@
       if (miembros.length === 0 && user?.email) {
         miembros = [user.email];
       }
-      const miembrosList = usuarios.filter(u => miembros.includes(u.email));
+      // Deduplicar miembros
+      miembros = [...new Set(miembros)];
+      // Filtrar usuarios por miembros y deduplicar por email
+      const miembrosSet = new Set(miembros);
+      const miembrosList = usuarios.filter((u, i, arr) => miembrosSet.has(u.email) && arr.findIndex(x => x.email === u.email) === i);
 
       html += miembrosList.map(u => {
         const key = 'asignado_' + u.email;
