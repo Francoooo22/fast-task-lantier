@@ -67,11 +67,18 @@ Gestor profesional de proyectos con sistema Kanban en tiempo real, integrado con
 
 ## 🚀 Cómo Usar
 
-### Instalación Local
+### Opción 1: Online (Recomendado)
+
+**Sin instalación requerida:**
+```
+https://fast-task-lantier.web.app
+```
+
+### Opción 2: Local (Desarrollo)
 
 1. **Clonar repositorio**
    ```bash
-   git clone https://github.com/tu-usuario/fast-task-lantier.git
+   git clone https://github.com/Francoooo22/fast-task-lantier.git
    cd fast-task-lantier
    ```
 
@@ -102,6 +109,13 @@ Gestor profesional de proyectos con sistema Kanban en tiempo real, integrado con
 
 ## 🔧 Configuración Firebase
 
+### Estado Actual
+- ✅ **Firebase Hosting**: Deployado en https://fast-task-lantier.web.app
+- ✅ **Firestore**: Base de datos en tiempo real
+- ✅ **Authentication**: Firebase Auth (email/password)
+- ✅ **Storage**: Firebase Storage para adjuntos
+
+### Credenciales
 El proyecto usa las siguientes credenciales de Firebase:
 
 ```javascript
@@ -116,6 +130,10 @@ const firebaseConfig = {
 ```
 
 > **⚠️ IMPORTANTE**: Estas credenciales son públicas (están en el frontend). No incluyen datos sensibles, pero en producción considera usar variables de entorno.
+
+### Archivos de Configuración
+- `firebase.json` - Configuración de Firebase Hosting
+- `.firebaserc` - Asociación con proyecto (en .gitignore por seguridad)
 
 ## 📱 Responsividad
 
